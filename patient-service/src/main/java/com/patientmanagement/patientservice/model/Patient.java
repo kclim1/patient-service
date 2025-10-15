@@ -30,7 +30,7 @@ public class Patient {
     @NotNull
     private LocalDate registeredDate;
 
-    public Patient(){};
+    public Patient(){}
 
 
     public UUID getId() {
