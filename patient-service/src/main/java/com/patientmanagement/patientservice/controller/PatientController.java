@@ -2,11 +2,9 @@ package com.patientmanagement.patientservice.controller;
 
 import com.patientmanagement.patientservice.dto.PatientRequestDTO;
 import com.patientmanagement.patientservice.dto.PatientResponseDTO;
-import com.patientmanagement.patientservice.model.Patient;
 import com.patientmanagement.patientservice.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
