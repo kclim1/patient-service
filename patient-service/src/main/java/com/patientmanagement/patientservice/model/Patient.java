@@ -32,14 +32,6 @@ public class Patient {
 
     public Patient(){};
 
-    public Patient(UUID id, String name, String email, String address, LocalDate dateOfBirth, LocalDate registeredDate) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.address = address;
-        this.dateOfBirth = dateOfBirth;
-        this.registeredDate = registeredDate;
-    }
 
     public UUID getId() {
         return id;
