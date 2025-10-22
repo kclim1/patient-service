@@ -4,6 +4,8 @@ import com.patientmanagement.patientservice.dto.PatientRequestDTO;
 import com.patientmanagement.patientservice.dto.PatientResponseDTO;
 import com.patientmanagement.patientservice.exception.EmailAlreadyExistsException;
 import com.patientmanagement.patientservice.exception.PatientNotFoundException;
+import com.patientmanagement.patientservice.grpc.BillingServiceGrpcClient;
+import com.patientmanagement.patientservice.kafka.KafkaProducer;
 import com.patientmanagement.patientservice.mapper.PatientMapper;
 import com.patientmanagement.patientservice.model.Patient;
 import com.patientmanagement.patientservice.repository.PatientRepository;
@@ -16,9 +18,13 @@ import java.util.UUID;
 @Service
 public class PatientService {
     private final PatientRepository patientRepository;
+    private final BillingServiceGrpcClient billingServiceGrpcClient;
+    private final KafkaProducer kafkaProducer;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(PatientRepository patientRepository , BillingServiceGrpcClient billingServiceGrpcClient , KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
+        this.billingServiceGrpcClient = billingServiceGrpcClient;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public List<PatientResponseDTO> getPatients() {
@@ -33,8 +39,12 @@ public class PatientService {
         if (patientRepository.existsByEmail(patientRequestDTO.email())) {
             throw new EmailAlreadyExistsException("A patient with this email already exists :" + patientRequestDTO.email());
         }
+//        creates new patient in db
         Patient newPatient = patientRepository.save(PatientMapper.toModel(patientRequestDTO));
-
+//        sends grpc req
+        billingServiceGrpcClient.createBillingAccount(newPatient.getId().toString(),newPatient.getName(), newPatient.getEmail());
+//        sends message to kafka broker
+        kafkaProducer.sendEvent(newPatient);
         return PatientMapper.toDTO(newPatient);
     }
 

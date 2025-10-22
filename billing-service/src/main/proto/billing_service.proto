@@ -1,0 +1,22 @@
+//describe version of proto we will be using
+syntax = "proto3";
+//by default code generation will put everything in same file, so this splits it into service, request and response files
+option java_multiple_files = true;
+
+//tells protobuf compiler to generate java classes and put them in billing package.
+option java_package = "billing";
+
+service BillingService{
+  rpc CreateBillingAccount (BillingRequest) returns (BillingResponse);
+}
+// think of it like a dto
+message BillingRequest{
+  string patientId = 1;
+  string name = 2;
+  string email = 3 ;
+}
+
+message BillingResponse{
+  string accountId = 1;
+  string status = 2;
+}

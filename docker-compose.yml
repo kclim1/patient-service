@@ -15,6 +15,54 @@ services:
     ports:
       - "5432:5432"
 
+  auth-service-db:
+    image: postgres:latest
+    container_name: auth-service-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: password
+    networks:
+      - internal
+    ports:
+      - "5433:5432"
+
+  auth-service:
+    build: ./auth-service
+    image: auth-service:latest
+    container_name: auth-service
+    environment:
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-service-db:5432/auth_db
+    networks:
+      - internal
+    ports:
+      - "4005:4005"
+    depends_on:
+      - auth-service-db
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+    networks:
+      - internal
+
+
   patient-service:
     build: ./patient-service
     image: patient-service:latest
@@ -25,9 +73,51 @@ services:
       SPRING_DATASOURCE_PASSWORD: password
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_SQL_INIT_MODE: always
+      BILLING_SERVICE_ADDRESS: billing-service
+      BILLING_SERVICE_GRPC_PORT: 9001
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - internal
+#    remove access from internet. access via api gateway instead
+#    ports:
+#      - "4000:4000"
+    depends_on:
+      - patient-service-db
+
+  billing-service:
+    build: ./billing-service
+    image: billing-service:latest
+    container_name: billing-service
     networks:
       - internal
     ports:
-      - "4000:4000"
+      - "4001:4001"
+      - "9001:9001"
+
     depends_on:
-      - patient-service-db
+      - patient-service
+
+#  analytics-service:
+#    build: ./analytics-service
+#    image: analytics-service:latest
+#    container_name: analytics-service
+#    environment:
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      SPRING_KAFKA_CONSUMER_GROUP_ID: analytics-service
+#      SPRING_KAFKA_CONSUMER_KEY_DESERIALIZER: org.apache.kafka.common.serialization.StringDeserializer
+#      SPRING_KAFKA_CONSUMER_VALUE_DESERIALIZER: org.apache.kafka.common.serialization.ByteArrayDeserializer
+#      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+#      SPRING_KAFKA_CONSUMER_ENABLE_AUTO_COMMIT: true
+#    networks:
+#      - internal
+#    ports:
+#      - "4002:4002"
+
+  api-gateway:
+    build: ./api-gateway
+    image: api-gateway:latest
+    container_name: api-gateway
+    networks:
+      - internal
+    ports:
+      - "4004:4004"
